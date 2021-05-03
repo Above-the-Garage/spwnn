@@ -297,10 +297,9 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 		// compute contribution of that letter pair.
 		var contribution float64
 		for _, aWord := range wordList {
-			// A human only has access to the word they see,
-			// so word pair contributions are based on that.
-			// Also in testing it results in far fewer ties.
+            // Pick one!
 			contribution = 1.0 / float64(len(word)-1)
+			//contribution = 1.0 / float64(len(aWord)-1)
 			increasesWordScore(dict, aWord, contribution)
 		}
 	}
@@ -341,9 +340,9 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 	}
 
 	// sort with best scores first
-	//sort.Sort(sort.Reverse(ByScore(results)))
-	sort.Sort(ByScore(results))
-	// sort by length, shorter words are better
+	sort.Sort(sort.Reverse(ByScore(results)))
+	// -or- sort.Sort(ByScore(results))
+	// sort next by length, same size words are better
 	sort.Sort(ByLength(results))
 
 	return results, wordsTouched
