@@ -25,6 +25,7 @@ type SpwnnDictionary struct {
 	wordCount       int
 	words           []string
 	wordScore       []float64
+	lenDiff         []int
 	neuronProtect   [sAlphabetSize * sAlphabetSize]bool
 	neuralIndex     [sAlphabetSize * sAlphabetSize][]string
 	neuralIndexSize [sAlphabetSize * sAlphabetSize]int
@@ -101,6 +102,7 @@ func rememberWord(dict *SpwnnDictionary, word string) {
 	// Make permanent copy of the word
 	dict.words = append(dict.words, word)
 	dict.wordScore = append(dict.wordScore, 0.0)
+	dict.lenDiff = append(dict.lenDiff, 0)
 	dict.wordCount++
 }
 
@@ -240,9 +242,10 @@ func findWord(dict *SpwnnDictionary, word string) int {
 	return -1
 }
 
-func increasesWordScore(dict *SpwnnDictionary, word string, factor float64) {
+func increaseWordScore(dict *SpwnnDictionary, word string, factor float64, lenDiff int) {
 	index := findWord(dict, word)
 	dict.wordScore[index] = dict.wordScore[index] + factor
+	dict.lenDiff[index] = lenDiff
 }
 
 func intMax(i1, i2 int) int {
@@ -254,8 +257,9 @@ func intMax(i1, i2 int) int {
 
 // SpwnnResult is a word and a corresponding score
 type SpwnnResult struct {
-	Score float64
-	Word  string
+	Score   float64
+	LenDiff int
+	Word    string
 }
 
 // ByScore sorts results list by score distance from 1.0
@@ -266,12 +270,24 @@ func (r ByScore) Len() int           { return len(r) }
 func (r ByScore) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r ByScore) Less(i, j int) bool { return math.Abs(r[i].Score-1.0) < math.Abs(r[j].Score-1.0) }
 
-// ByLength sorts results by length of word
+// ByLength sorts results by distance from length of original word
 type ByLength []SpwnnResult
 
-func (r ByLength) Len() int           { return len(r) }
-func (r ByLength) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r ByLength) Less(i, j int) bool { return len(r[i].Word) < len(r[j].Word) }
+//
+func (r ByLength) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+
+//
+func (r ByLength) Less(i, j int) bool { return r[i].LenDiff < r[j].LenDiff }
+
+//
+func (r ByLength) Len() int { return len(r) }
+
+func intabs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
+}
 
 // CorrectSpelling finds words similar to given word; also returns the number of words "touched" by the algorithm
 func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
@@ -279,6 +295,7 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 	// clear scores if leftover from previous run
 	for i := 0; i < dict.wordCount; i++ {
 		dict.wordScore[i] = 0.0
+		dict.lenDiff[i] = 0
 	}
 
 	// Allow words with "_" already attached to beginning and end;
@@ -297,10 +314,12 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 		// compute contribution of that letter pair.
 		var contribution float64
 		for _, aWord := range wordList {
-            // Pick one!
+			// A human only has access to the word they see,
+			// so word pair contributions are based on that.
+			// Also in testing it results in far fewer ties.
 			contribution = 1.0 / float64(len(word)-1)
-			//contribution = 1.0 / float64(len(aWord)-1)
-			increasesWordScore(dict, aWord, contribution)
+			lenDiff := intabs(len(aWord) - len(word))
+			increaseWordScore(dict, aWord, contribution, lenDiff)
 		}
 	}
 
@@ -334,15 +353,16 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 		if math.Abs(dict.wordScore[i]-bestScore) <= dict.accuracy {
 			var res SpwnnResult
 			res.Score = dict.wordScore[i]
+			res.LenDiff = dict.lenDiff[i]
 			res.Word = dict.words[i]
 			results = append(results, res)
 		}
 	}
 
 	// sort with best scores first
-	sort.Sort(sort.Reverse(ByScore(results)))
-	// -or- sort.Sort(ByScore(results))
-	// sort next by length, same size words are better
+	//sort.Sort(sort.Reverse(ByScore(results)))
+	sort.Sort(ByScore(results))
+	// sort by length, shorter words are better
 	sort.Sort(ByLength(results))
 
 	return results, wordsTouched
