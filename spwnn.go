@@ -1,5 +1,5 @@
 /*
-Package spwnnpkg - neural spelling corrector worker package
+Package spwnn - neural spelling corrector worker
 */
 package spwnn
 
@@ -10,7 +10,6 @@ import (
 	"math"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 )
 
@@ -21,7 +20,6 @@ const sAlphabetSize = 28
 
 // SpwnnDictionary contains all necessary state to analyze a word
 type SpwnnDictionary struct {
-	accuracy        float64
 	wordCount       int
 	words           []string
 	wordScore       []float64
@@ -143,7 +141,6 @@ func ReadDictionary(noisy bool) *SpwnnDictionary {
 	var dict SpwnnDictionary
 
 	counter := 0
-	dict.accuracy = 0.05
 	clearNetwork(&dict)
 
 	scanner := bufio.NewScanner(file)
@@ -209,16 +206,6 @@ func MaxIndexSize(dict *SpwnnDictionary) int {
 	return maxSize
 }
 
-// SetAccuracy sets a range of "acceptability" of similar words
-func SetAccuracy(dict *SpwnnDictionary, input string) {
-	var newAccuracy64 float64
-	newAccuracy64, _ = strconv.ParseFloat(input, 32)
-	if newAccuracy64 > 0.1 {
-		dict.accuracy = newAccuracy64
-		return
-	}
-}
-
 func findWord(dict *SpwnnDictionary, word string) int {
 	// words must be sorted as per Go rules for this binary search to work
 	word = RemoveSpaces(word)
@@ -282,7 +269,7 @@ func (r ByLength) Less(i, j int) bool { return r[i].LenDiff < r[j].LenDiff }
 //
 func (r ByLength) Len() int { return len(r) }
 
-func intabs(n int) int {
+func intAbs(n int) int {
 	if n < 0 {
 		return -n
 	}
@@ -318,7 +305,7 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 			// so word pair contributions are based on that.
 			// Also in testing it results in far fewer ties.
 			contribution = 1.0 / float64(len(word)-1)
-			lenDiff := intabs(len(aWord) - len(word))
+			lenDiff := intAbs(len(aWord) - len(word))
 			increaseWordScore(dict, aWord, contribution, lenDiff)
 		}
 	}
@@ -333,16 +320,7 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 		}
 		// Best score is the score closest to 1.0
 		if math.Abs(bestScore-1.0) > math.Abs(dict.wordScore[i]-1.0) {
-			//oldBestScore := bestScore
 			bestScore = dict.wordScore[i]
-			/*
-				fmt.Printf(
-					"word %v; old %v; dict %v; new %v\n",
-					dict.words[i],
-					math.Abs(oldBestScore-1.0),
-					math.Abs(dict.wordScore[i]-1.0),
-					math.Abs(bestScore-1.0))
-			*/
 		}
 	}
 
@@ -350,7 +328,7 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 	var results []SpwnnResult
 	results = make([]SpwnnResult, 0)
 	for i := 0; i < dict.wordCount; i++ {
-		if math.Abs(dict.wordScore[i]-bestScore) <= dict.accuracy {
+		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 && dict.lenDiff[i] == 0 {
 			var res SpwnnResult
 			res.Score = dict.wordScore[i]
 			res.LenDiff = dict.lenDiff[i]
@@ -360,7 +338,6 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 	}
 
 	// sort with best scores first
-	//sort.Sort(sort.Reverse(ByScore(results)))
 	sort.Sort(ByScore(results))
 	// sort by length, shorter words are better
 	sort.Sort(ByLength(results))
