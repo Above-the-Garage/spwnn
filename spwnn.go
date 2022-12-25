@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-// 26 letters plus plus underscore (to mark start, end of word, or characters not
+// 26 letters plus underscore (to mark start AND end of word, or characters not
 // in the alphabet like apostraphe)
 
 const sAlphabetSize = 28
@@ -277,7 +277,7 @@ func intAbs(n int) int {
 }
 
 // CorrectSpelling finds words similar to given word; also returns the number of words "touched" by the algorithm
-func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
+func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]SpwnnResult, int) {
 
 	// clear scores if leftover from previous run
 	for i := 0; i < dict.wordCount; i++ {
@@ -328,7 +328,10 @@ func CorrectSpelling(dict *SpwnnDictionary, word string) ([]SpwnnResult, int) {
 	var results []SpwnnResult
 	results = make([]SpwnnResult, 0)
 	for i := 0; i < dict.wordCount; i++ {
-		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 && dict.lenDiff[i] == 0 {
+		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 {
+		    if strictLen && dict.lenDiff[i] != 0 {
+                continue
+            }
 			var res SpwnnResult
 			res.Score = dict.wordScore[i]
 			res.LenDiff = dict.lenDiff[i]
