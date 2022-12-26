@@ -64,6 +64,8 @@ func charToIndex(ch byte) int {
 	res := byte(0)
 	if ch >= 'a' && ch <= 'z' {
 		res = ch - 'a'
+	} else if ch >= 'A' && ch <= 'Z' {
+        res = ch - 'A'
 	} else if ch == '_' {
 		res = 26
 	} else {
