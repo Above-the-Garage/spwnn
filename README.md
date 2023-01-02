@@ -9,7 +9,7 @@ Build dictionary/neural net:
 
 So, for example:
   * "bear" -> "\_bear\_"
-  * add "\_bear\_" to lists anchored at _b, be, ea, ar, r_
+  * add "\_bear\_" to lists anchored at \_b, be, ea, ar, r\_
 
 Use neural net:
   * Add "_" to beginng and end of word
