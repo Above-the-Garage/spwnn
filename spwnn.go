@@ -65,7 +65,7 @@ func charToIndex(ch byte) int {
 	if ch >= 'a' && ch <= 'z' {
 		res = ch - 'a'
 	} else if ch >= 'A' && ch <= 'Z' {
-        res = ch - 'A'
+		res = ch - 'A'
 	} else if ch == '_' {
 		res = 26
 	} else {
@@ -331,9 +331,9 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 	results = make([]SpwnnResult, 0)
 	for i := 0; i < dict.wordCount; i++ {
 		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 {
-		    if strictLen && dict.lenDiff[i] != 0 {
-                continue
-            }
+			if strictLen && dict.lenDiff[i] != 0 {
+				continue
+			}
 			var res SpwnnResult
 			res.Score = dict.wordScore[i]
 			res.LenDiff = dict.lenDiff[i]
