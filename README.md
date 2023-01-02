@@ -1,10 +1,15 @@
-```
+spwnn
+* **s**hallow **p**air-**w**ise **n**eural **n**etwork
+* spelling correction / suggestion version
+
+
 Build dictionary/neural net:
 * Add "_" to beginning and end of word
 * Add the word to a list rooted at each character pair
-* So, for example:
-  * "bear" -> "_bear_"
-  * add "_bear_" to lists anchored at _b, be, ea, ar, r_
+
+So, for example:
+  * "bear" -> "\_bear\_"
+  * add "\_bear\_" to lists anchored at _b, be, ea, ar, r_
 
 Use neural net:
   * Add "_" to beginng and end of word
@@ -15,9 +20,12 @@ Use neural net:
   * Sort the highest scoring words by the amount their length differs from the input word
 
 Show results:
-  Print those words
+
+* Print those words
+  * spwnncli - on a command line
+  * spwnnlambda - via an AWS  lambda
+  * spwnnweb - via a web browser
 
 Verify dictionary, to show that most words correct to themselves:
   * Run the algo on every word in the dictionary
   * Print out any results where there is more than one word with the highest score that is the same length as the input word 
-```
