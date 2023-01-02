@@ -1,17 +1,18 @@
-spwnn
+# spwnn
 * **s**hallow **p**air-**w**ise **n**eural **n**etwork
 * spelling correction / suggestion version
 
+## Algorithm:
 
-Build dictionary/neural net:
+### Build dictionary/neural net:
 * Add "_" to beginning and end of word
 * Add the word to a list rooted at each character pair
 
-So, for example:
+### So, for example:
   * "bear" -> "\_bear\_"
   * add "\_bear\_" to lists anchored at \_b, be, ea, ar, r\_
 
-Use neural net:
+### Using neural net:
   * Add "_" to beginng and end of word
   * For each letter pair
     * For each word in list rooted at each letter pair
@@ -19,13 +20,68 @@ Use neural net:
   * Sort all the words by their score and keep all of the words with a matching highest score
   * Sort the highest scoring words by the amount their length differs from the input word
 
-Show results:
+## Display results:
 
-* Print those words
+### Print winning words
+* Clients
   * spwnncli - on a command line
   * spwnnlambda - via an AWS  lambda
   * spwnnweb - via a web browser
 
-Verify dictionary, to show that most words correct to themselves:
-  * Run the algo on every word in the dictionary
-  * Print out any results where there is more than one word with the highest score that is the same length as the input word 
+### Verify dictionary, to show that most words correct to themselves:
+* Run the algo on every word in the dictionary
+* Print out any results where there is more than one word with the highest score that is the same length as the input word 
+* Clients
+  * spwnncli - on a command line (command -g)
+  * spwnnmark - benchmark, also shows validation results; see README.md for spwnnmark for some results
+
+## Effectiveness:
+I have three dictionaries.
+* ispell.words - about 49,000 words (of somewhat unknown origin, circa 2000) 
+* american.sml+.mwl - about 23,000 words (from ispell, 2022)
+* dwyl-english-words-words_alpha.txt - about 370,000 words (from aspell, 2022)
+
+### ispell.words:
+```
+'_bringing_' could be '[{1 0 _bridging_} {1 0 _bringing_}]'
+'_contented_' could be '[{1 0 _consented_} {1 0 _contended_} {1 0 _contented_}]'
+'_deeded_' could be '[{1 0 _deeded_} {1 0 _deemed_}]'
+'_descendent_' could be '[{1 0 _descendant_} {1 0 _descendent_}]'
+'_indented_' could be '[{1 0 _indented_} {1 0 _intended_}]'
+'_intended_' could be '[{1 0 _indented_} {1 0 _intended_}]'
+'_microeconomics_' could be '[{1 0 _macroeconomics_} {1 0 _microeconomics_}]'
+'_ratification_' could be '[{1 0 _ramification_} {1 0 _ratification_}]'
+'_ringing_' could be '[{1 0 _rigging_} {1 0 _ringing_}]'
+'_tinting_' could be '[{1 0 _tenting_} {1 0 _tinting_}]'
+'_unindented_' could be '[{1 0 _unindented_} {1 0 _unintended_}]'
+'_unintended_' could be '[{1 0 _unindented_} {1 0 _unintended_}]'
+```
+ Out of 49,167 words, the algorithm produces 12 words that have the same score and are the same length.
+
+ This suggests that while the system isn't perfect, it is very good, which suggests to me that human brains tend to want to make words that are highly differentiated based on pair-wise combinations.
+
+### Interesting words
+* "Intended" and "indented" are two words that show where the system breaks down:  both have the exact same set of letter pairs!  In my 49,000 word dictionary this only happens a couple of times: intended/indented; contented/contended.  (Unintended/Unindented are the nearly the same words as intended/indented.)
+* The other words that don't validate _only_ to themselves have a pattern where there is a letter-pair that is duplicated:  "ringing" has 'in' and 'ng' duplicated, and produces the same score as "rigging", which also contains 'in and 'ng'.  Ah, but you say, shouldn't the repeated 'ng' in "ringing" make it a clear winner?  Yes, except, it doesn't quite work that way.
+
+ ## Theory and history
+ I started thinking about this approximately 1980 when I was a student at UCI.  
+ 
+ This started when I wondered why, if people can read whole words at once, there needs to be an ordering to the letters in the word, and in particular, why is there an alphabetical order?  This led to me thinking about how little it takes before one sees one is talking about the alphabet:  abc  ... pqr ...  xyz; these letter orders are ingrained in us from an early age.
+
+ So I decided to see if I could make a spelling corrector based solely on letter-pairs, and the ordering of the letters in the word would be implied by the way the letter-pairs interacted.
+ 
+ My first version was in Lisp on a PDP-10 which had limited memory so I could only load in the words that started with "a".  I'm not sure what dictionary I used back then.  It seemed to work.
+
+ Around 2000 I realized my home computer was probably enough to run the algorithm, and I made a version in C.
+
+ Around 2016 I made a version in Go, which mostly worked.
+
+ Around 2018 I went on a programming retreat, where I fixed a key bug that had been in the original, and updated the Go version to support a command line client, a web client, and an AWS lambeda.  This is when I found a key bug:  when adding a word to a list of words containing a letter-pair, the code would add (for example) 'ng' in "ringing" twice, because it just interated through all of the letter-pairs.  But then when checking a word, it would double count the contribution of 'ng'.  So I put in a little test to only use each letter-pair once when building the dictionary.
+
+ End of year 2022 I cleaned up all of my Go code, relearned how to launch and run a lambda (things were greatly improved!), made the standalone benchmark version, and started to document how it works.
+
+ ## Summary
+ I mean, it mostly works!  Why is that?  I don't really know, other than I had a hypothesis, I thought up a way to test my hypothesis, and the results are pretty good.  Is there some deeper meaning to this?  Maybe!  In college I did some tests with word-pairs. I typed in the first paragraph of an article from the school paper "The New U" and assigned an atom (this was lisp!) to the word-pairs.  Atoms would be things like "football" or "politics".  It turns out there was very little variety in New U articles so it wasn't much of a test, but it sort of worked.  Later, when I read about how to make a reverse-index for web pages, I recognized it as similar, but using individual words rather than word pairs.  I suspect word-pairs would work better.  (And letter-triples and word-triples would probably work even better, but why complicate things?)
+
+ 
