@@ -2,6 +2,82 @@
 * **s**hallow **p**air-**w**ise **n**eural **n**etwork
 * spelling correction / suggestion version
 
+## Plea
+This has the MIT License; but honestly the algorithm is so simple you could just code it up.  I would like to ask
+that if you find that a reverse index like this one with pair-wise associations helpful because you learned about
+it here that you give me a bit of credit.
+
+## Examples
+
+Various correctly spelled and misspelled words; some in the dictionary, some not.
+
+```
+PS C:\Users\Stephen\Go\src\github.com\above-the-garage\spwnncli> .\spwnncli.exe
+.................................................
+49167 words in dictionary
+
+Command or word: contention
+  100%  0       _contention_
+Words Touched = 43%
+
+Command or word: contension
+  81%   0       _consistent_
+  81%   0       _contention_
+  81%   1       _contentions_
+  81%   2       _consistently_
+  81%   3       _comprehension_
+  81%   5       _intensification_
+Words Touched = 42%
+
+Command or word: contemplation
+  100%  0       _contemplation_
+Words Touched = 47%
+
+Command or word: ontemplation
+  92%   1       _contemplation_
+Words Touched = 43%
+
+Command or word: templation
+  90%   3       _contemplation_
+Words Touched = 42%
+
+Command or word: stepheeen
+  80%   1       _stephenson_
+  80%   2       _stephen_
+Words Touched = 41%
+
+Command or word: halleilujah
+  41%   0       _hallucinate_
+  41%   2       _hillsdale_
+  41%   5       _halley_
+Words Touched = 26%
+
+Command or word: hallelulah
+  45%   1       _hallucinate_
+  45%   1       _tallahassee_
+  45%   2       _callahan_
+  45%   2       _cellular_
+  45%   2       _tallahatchie_
+  45%   3       _multicellular_
+  45%   4       _halley_
+  45%   4       _mullah_
+  45%   4       _gullah_
+  45%   5       _allah_
+  45%   11      _electroencephalograph_
+Words Touched = 31%
+
+Command or word: hallelujah
+  45%   1       _hallucinate_
+  45%   4       _halley_
+  45%   11      _electroencephalograph_
+Words Touched = 26%
+
+Command or word: -e
+Bye!
+PS C:\Users\Stephen\Go\src\github.com\above-the-garage\spwnncli>
+```
+
+
 ## Algorithm:
 
 ### Build dictionary/neural net:
