@@ -1,6 +1,7 @@
 # spwnn
 * **s**hallow **p**air-**w**ise **n**eural **n**etwork
 * spelling correction / suggestion version
+* 40 years in the making!
 
 ## Plea
 This has the MIT License; but honestly the algorithm is so simple you could just code it up.  I would like to ask
@@ -117,6 +118,8 @@ I have three dictionaries.
 * american.sml+.mwl - about 23,000 words (from ispell, 2022)
 * dwyl-english-words-words_alpha.txt - about 370,000 words (from aspell, 2022)
 
+An interesting test and a good way to validate the code is to see if each word in the dictionary will produce just itself as a result.
+
 ### ispell.words:
 ```
 '_bringing_' could be '[{1 0 _bridging_} {1 0 _bringing_}]'
@@ -132,9 +135,9 @@ I have three dictionaries.
 '_unindented_' could be '[{1 0 _unindented_} {1 0 _unintended_}]'
 '_unintended_' could be '[{1 0 _unindented_} {1 0 _unintended_}]'
 ```
- Out of 49,167 words, the algorithm produces 12 words that have the same score and are the same length.
+Out of 49,167 words, the algorithm produces 12 words that have the same score and are the same length.
 
- This suggests that while the system isn't perfect, it is very good, which suggests to me that human brains tend to want to make words that are highly differentiated based on pair-wise combinations.
+This suggests that while the system isn't perfect, it is very good, which suggests to me that human brains tend to want to make words that are highly differentiated based on pair-wise combinations.
 
 ### Interesting words
 * "Intended" and "indented" are two words that show where the system breaks down:  both have the exact same set of letter pairs!  In my 49,000 word dictionary this only happens a couple of times: intended/indented; contented/contended.  (Unintended/Unindented are the nearly the same words as intended/indented.)
