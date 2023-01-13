@@ -1,5 +1,8 @@
 /*
 Package spwnn - neural spelling corrector worker
+MIT License - Stephen Clarke-Willson, Ph.D.
+If this algorithm inspires you in some way, please toss a little credit my way,
+even if you don't use this code directly!  Thanks.
 */
 package spwnn
 
