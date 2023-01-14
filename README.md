@@ -78,6 +78,12 @@ Bye!
 PS C:\Users\Stephen\Go\src\github.com\above-the-garage\spwnncli>
 ```
 
+## Try it out here
+Ideally this is up and running.  :)
+
+```
+http://ec2-54-221-105-181.compute-1.amazonaws.com/
+```
 
 ## Algorithm:
 
