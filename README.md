@@ -151,7 +151,7 @@ This suggests that while the system isn't perfect, it is very good, which sugges
  ## Theory and history
  I started thinking about this approximately 1980 when I was a student at UCI.  
  
- This started when I wondered why, if people can read whole words at once - i.e., parse the whole word in parallel, and yet there needs to be an ordering to the letters in a word. And why is there such a thing as alphabetical order?  This led to me thinking about how little it takes before one identifies a series of letters as part of the alphabetical order:  abc  ... pqr ...  xyz; these letter orders are ingrained in us from an early age.
+ This started when I wondered why, if people can read whole words at once - i.e., parse the whole word in parallel, and yet there needs to be an ordering to the letters in a word. And why is there such a thing as alphabetical order?  This led to me thinking about how little it takes before one identifies a series of letters as part of the alphabetical order:  ab  ... pq ...  xy; these letter orders are ingrained in us from an early age.
 
  So I decided to see if I could make a spelling corrector based solely on letter-pairs, and the ordering of the letters in the word would be implied by the way the letter-pairs interacted.
  
