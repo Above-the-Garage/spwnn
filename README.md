@@ -119,13 +119,16 @@ http://ec2-54-221-105-181.compute-1.amazonaws.com/
 
 ## Effectiveness:
 I have three dictionaries.
-* ispell.words - about 49,000 words (of somewhat unknown origin, circa 2000) 
+* ispell.words - about 49,000 words (of somewhat unknown origin, circa 2000)
+  * 12 failures / 49167 total words = 0.0244 % error rate
 * american.sml+.mwl - about 23,000 words (from ispell, 2022)
+  * 8 failures / 23115 total words = 0.378% error rate
 * dwyl-english-words-words_alpha.txt - about 370,000 words (from aspell, 2022)
+  * 408 failures / 370104 total words = 0.0011% error rate
 
 An interesting test and a good way to validate the code is to see if each word in the dictionary will produce just itself as a result.
 
-### ispell.words:
+### ispell.words failures
 ```
 '_bringing_' could be '[{1 0 _bridging_} {1 0 _bringing_}]'
 '_contented_' could be '[{1 0 _consented_} {1 0 _contended_} {1 0 _contented_}]'
