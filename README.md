@@ -145,7 +145,7 @@ An interesting test and a good way to validate the code is to see if each word i
 ```
 Out of 49,167 words, the algorithm produces 12 words that have the same score and are the same length.
 
-This suggests that while the system isn't perfect, it is very good, which suggests to me that human brains tend to want to make words that are highly differentiated based on pair-wise combinations.
+This suggests that while the system isn't perfect, it is very good, which further suggests to me that human brains tend to want to make words that are highly differentiated based on pair-wise combinations.
 
 ### Interesting words
 * "Intended" and "indented" are two words that show where the system breaks down:  both have the exact same set of letter pairs!  In my 49,000 word dictionary this only happens a couple of times: intended/indented; contented/contended.  (Unintended/Unindented are the nearly the same words as intended/indented.)
