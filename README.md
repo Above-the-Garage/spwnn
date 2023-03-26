@@ -87,18 +87,19 @@ http://ec2-54-221-105-181.compute-1.amazonaws.com/
 ## Algorithm:
 
 ### Build dictionary/neural net:
-* Add "_" to beginning and end of word
-* Add the word to a list rooted at each character pair
+* ForEach word in dictionary:
+  * Add "_" to beginning and end of word
+  * Add the word to a list rooted at each character pair
 
 ### So, for example:
   * "bear" -> "\_bear\_"
   * add "\_bear\_" to lists anchored at \_b, be, ea, ar, r\_
 
 ### Using neural net:
-  * Add "_" to beginng and end of word
+  * Add "_" to beginng and end of input word
   * For each letter pair
     * For each word in list rooted at each letter pair
-      * Increase the score for that word by 1.0 / float64(len(word)-1)
+      * Increase the score for that word by 1.0 / float64(len(input word)-1)
   * Sort all the words by their score and keep all of the words with a matching highest score
   * Sort the highest scoring words by the amount their length differs from the input word
 
