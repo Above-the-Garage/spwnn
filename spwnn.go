@@ -16,8 +16,8 @@ import (
 	"strings"
 )
 
-// 26 letters plus underscore (to mark start AND end of word, or characters not
-// in the alphabet like apostraphe)
+// 26 letters plus underscore (to mark start and end of word) plus one slot
+// for non-alphabetic characters (like apostrophe)
 
 const sAlphabetSize = 28
 
@@ -32,8 +32,8 @@ type SpwnnDictionary struct {
 	neuralIndexSize [sAlphabetSize * sAlphabetSize]int
 }
 
-// GetWordCount returns the total number of words in the dictionary
-func GetWordCount(dict *SpwnnDictionary) int {
+// WordCount returns the total number of words in the dictionary
+func (dict *SpwnnDictionary) WordCount() int {
 	return dict.wordCount
 }
 
@@ -49,8 +49,8 @@ func RemoveSpaces(line string) string {
 	return line
 }
 
-// GetWords returns the array of words in the dictionary
-func GetWords(dict *SpwnnDictionary) []string {
+// Words returns the array of words in the dictionary
+func (dict *SpwnnDictionary) Words() []string {
 	return dict.words
 }
 
@@ -117,10 +117,8 @@ func clearList(dict *SpwnnDictionary, ch1, ch2 byte) {
 func clearNetwork(dict *SpwnnDictionary) {
 	dict.words = make([]string, 0)
 	dict.wordCount = 0
-	for ch1 := 'a'; ch1 <= 'z'; ch1++ {
-		for ch2 := 'a'; ch2 <= 'z'; ch2++ {
-			clearList(dict, byte(ch1), byte(ch2))
-		}
+	for i := 0; i < sAlphabetSize*sAlphabetSize; i++ {
+		dict.neuralIndex[i] = make([]string, 0)
 	}
 }
 
@@ -135,9 +133,9 @@ func addWordToNetwork(dict *SpwnnDictionary, word string) {
 	}
 }
 
-// ReadDictionary reads "knownWords.txt" into a SpwnnDictionary
-func ReadDictionary(noisy bool) *SpwnnDictionary {
-	file, err := os.Open("knownWords.txt")
+// ReadDictionary reads a word list file into a SpwnnDictionary
+func ReadDictionary(filename string, noisy bool) *SpwnnDictionary {
+	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -196,7 +194,7 @@ func PrintIndexSizes(dict *SpwnnDictionary) {
 	}
 }
 
-// MaxIndexSize the size of the largest list assocaited with a letter pair
+// MaxIndexSize returns the size of the largest list associated with a letter pair
 func MaxIndexSize(dict *SpwnnDictionary) int {
 	maxSize := 0
 	for i := 0; i < sAlphabetSize; i++ {
@@ -331,7 +329,6 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 
 	// find near-winners
 	var results []SpwnnResult
-	results = make([]SpwnnResult, 0)
 	for i := 0; i < dict.wordCount; i++ {
 		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 {
 			if strictLen && dict.lenDiff[i] != 0 {
@@ -345,10 +342,10 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 		}
 	}
 
-	// sort with best scores first
+	// sort with best scores first, then stable sort by length
+	// so shorter words come first, with score as tiebreaker
 	sort.Sort(ByScore(results))
-	// sort by length, shorter words are better
-	sort.Sort(ByLength(results))
+	sort.Stable(ByLength(results))
 
 	return results, wordsTouched
 }
