@@ -256,6 +256,30 @@ type SpwnnResult struct {
 	Word    string
 }
 
+// LengthMatch selects whether CorrectSpelling may return words of a
+// different length than the input.
+type LengthMatch int
+
+const (
+	// AnyLength returns the best-scoring words whatever their length.
+	AnyLength LengthMatch = iota
+	// SameLength returns only best-scoring words the same length as the input.
+	SameLength
+)
+
+// PairScoring selects how CorrectSpelling scores a letter pair that occurs
+// more than once in the input word.
+type PairScoring int
+
+const (
+	// CappedPairs credits a repeated input pair only as many times as the
+	// dictionary word actually contains it. This is the default.
+	CappedPairs PairScoring = iota
+	// OriginalPairs is the original algorithm: every occurrence of a pair
+	// in the input credits every word that contains the pair at least once.
+	OriginalPairs
+)
+
 // ByScore sorts results list by score distance from 1.0
 // This must be exported for "Sort" ... ?
 type ByScore []SpwnnResult
@@ -280,8 +304,10 @@ func intAbs(n int) int {
 	return n
 }
 
-// CorrectSpelling finds words similar to given word; also returns the number of words "touched" by the algorithm
-func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]SpwnnResult, int) {
+// CorrectSpelling finds words similar to given word; also returns the number of words "touched" by the algorithm.
+// lengthMatch chooses whether winners must be the input's length, and
+// scoring chooses how a letter pair repeated in the input is counted (CappedPairs or OriginalPairs).
+func CorrectSpelling(dict *SpwnnDictionary, word string, lengthMatch LengthMatch, scoring PairScoring) ([]SpwnnResult, int) {
 
 	// clear scores if leftover from previous run
 	for i := 0; i < dict.wordCount; i++ {
@@ -294,46 +320,25 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 	if word[0] != '_' {
 		word = addStartEnd(word)
 	}
-	// Count how many times each letter pair occurs in the input
-	var inputCounts [sAlphabetSize * sAlphabetSize]int
-	var inputPairs []int
-	for i := 0; i < len(word)-1; i++ {
-		index := getNeuronIndex(word[i], word[i+1])
-		if inputCounts[index] == 0 {
-			inputPairs = append(inputPairs, index)
-		}
-		inputCounts[index]++
+	// Capped scores are whole pair counts and get divided by the input's
+	// pair count below; original scores are already fractions.
+	divisor := 1.0
+	switch scoring {
+	case OriginalPairs:
+		scoreOriginalPairs(dict, word)
+	default:
+		scoreCappedPairs(dict, word)
+		// A human only has access to the word they see,
+		// so word pair contributions are based on that.
+		divisor = float64(len(word) - 1)
 	}
-
-	// For each distinct letter pair, credit every word that has it,
-	// but only as many times as that word actually contains the pair.
-	// Scores are accumulated as whole pair matches (exact in float64)
-	// and divided by the input's pair count below, so equal matches
-	// always produce exactly equal scores.
-	for _, index := range inputPairs {
-		wordList := dict.neuralIndex[index]
-		wordCounts := dict.neuralCount[index]
-		for j, aWord := range wordList {
-			matched := inputCounts[index]
-			if wordCounts[j] < matched {
-				matched = wordCounts[j]
-			}
-			lenDiff := intAbs(len(aWord) - len(word))
-			increaseWordScore(dict, aWord, float64(matched), lenDiff)
-		}
-	}
-
-	// A human only has access to the word they see,
-	// so word pair contributions are based on that.
-	// Also in testing it results in far fewer ties.
-	inputPairCount := float64(len(word) - 1)
 
 	// Find best score received by any word; also count number of words touched
 	var bestScore float64
 	var wordsTouched int
 	for i := 0; i < dict.wordCount; i++ {
 		if dict.wordScore[i] != 0.0 {
-			dict.wordScore[i] = MakeOneExactly(dict.wordScore[i] / inputPairCount)
+			dict.wordScore[i] = MakeOneExactly(dict.wordScore[i] / divisor)
 			wordsTouched++
 		}
 		// Best score is the score closest to 1.0
@@ -346,7 +351,7 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 	var results []SpwnnResult
 	for i := 0; i < dict.wordCount; i++ {
 		if math.Abs(dict.wordScore[i]-bestScore) == 0.0 {
-			if strictLen && dict.lenDiff[i] != 0 {
+			if lengthMatch == SameLength && dict.lenDiff[i] != 0 {
 				continue
 			}
 			var res SpwnnResult
@@ -363,4 +368,49 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 	sort.Stable(ByLength(results))
 
 	return results, wordsTouched
+}
+
+// scoreOriginalPairs is the original scoring: walk every pair in the input,
+// including repeats, and give each word containing that pair 1/(pairs in input).
+func scoreOriginalPairs(dict *SpwnnDictionary, word string) {
+	// A human only has access to the word they see,
+	// so word pair contributions are based on that.
+	// Also in testing it results in far fewer ties.
+	contribution := 1.0 / float64(len(word)-1)
+	for i := 0; i < len(word)-1; i++ {
+		index := getNeuronIndex(word[i], word[i+1])
+		for _, aWord := range dict.neuralIndex[index] {
+			lenDiff := intAbs(len(aWord) - len(word))
+			increaseWordScore(dict, aWord, contribution, lenDiff)
+		}
+	}
+}
+
+// scoreCappedPairs credits each distinct input pair to every word that has it,
+// but only as many times as that word actually contains the pair.
+// Matches are counted as whole numbers (exact in float64) and divided by the
+// input's pair count by the caller, so equal matches give exactly equal scores.
+func scoreCappedPairs(dict *SpwnnDictionary, word string) {
+	var inputCounts [sAlphabetSize * sAlphabetSize]int
+	var inputPairs []int
+	for i := 0; i < len(word)-1; i++ {
+		index := getNeuronIndex(word[i], word[i+1])
+		if inputCounts[index] == 0 {
+			inputPairs = append(inputPairs, index)
+		}
+		inputCounts[index]++
+	}
+
+	for _, index := range inputPairs {
+		wordList := dict.neuralIndex[index]
+		wordCounts := dict.neuralCount[index]
+		for j, aWord := range wordList {
+			matched := inputCounts[index]
+			if wordCounts[j] < matched {
+				matched = wordCounts[j]
+			}
+			lenDiff := intAbs(len(aWord) - len(word))
+			increaseWordScore(dict, aWord, float64(matched), lenDiff)
+		}
+	}
 }
