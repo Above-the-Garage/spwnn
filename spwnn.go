@@ -27,8 +27,8 @@ type SpwnnDictionary struct {
 	words           []string
 	wordScore       []float64
 	lenDiff         []int
-	neuronProtect   [sAlphabetSize * sAlphabetSize]bool
 	neuralIndex     [sAlphabetSize * sAlphabetSize][]string
+	neuralCount     [sAlphabetSize * sAlphabetSize][]int // parallel to neuralIndex: times the pair occurs in that word
 	neuralIndexSize [sAlphabetSize * sAlphabetSize]int
 }
 
@@ -92,15 +92,6 @@ func getNeuronIndex(ch1, ch2 byte) int {
 	return computeIndex(n1, n2)
 }
 
-func addNeuron(dict *SpwnnDictionary, ch1, ch2 byte, word string) {
-	nIndex := getNeuronIndex(ch1, ch2)
-	if !dict.neuronProtect[nIndex] {
-		dict.neuralIndex[nIndex] = append(dict.neuralIndex[nIndex], word)
-		dict.neuralIndexSize[nIndex]++
-		dict.neuronProtect[nIndex] = true
-	}
-}
-
 func rememberWord(dict *SpwnnDictionary, word string) {
 	// Make permanent copy of the word
 	dict.words = append(dict.words, word)
@@ -112,6 +103,7 @@ func rememberWord(dict *SpwnnDictionary, word string) {
 func clearList(dict *SpwnnDictionary, ch1, ch2 byte) {
 	nIndex := getNeuronIndex(ch1, ch2)
 	dict.neuralIndex[nIndex] = make([]string, 0)
+	dict.neuralCount[nIndex] = make([]int, 0)
 }
 
 func clearNetwork(dict *SpwnnDictionary) {
@@ -119,17 +111,29 @@ func clearNetwork(dict *SpwnnDictionary) {
 	dict.wordCount = 0
 	for i := 0; i < sAlphabetSize*sAlphabetSize; i++ {
 		dict.neuralIndex[i] = make([]string, 0)
+		dict.neuralCount[i] = make([]int, 0)
 	}
 }
 
 func addWordToNetwork(dict *SpwnnDictionary, word string) {
 	rememberWord(dict, word)
-	for index := range dict.neuronProtect {
-		dict.neuronProtect[index] = false
-	}
+	// Count how many times each letter pair occurs in this word so a
+	// repeated pair in the input can only be matched as often as it
+	// actually appears in the dictionary word.
+	var counts [sAlphabetSize * sAlphabetSize]int
+	var pairs []int
 	length := len(word)
 	for i := 0; i < length-1; i++ {
-		addNeuron(dict, word[i], word[i+1], word)
+		nIndex := getNeuronIndex(word[i], word[i+1])
+		if counts[nIndex] == 0 {
+			pairs = append(pairs, nIndex)
+		}
+		counts[nIndex]++
+	}
+	for _, nIndex := range pairs {
+		dict.neuralIndex[nIndex] = append(dict.neuralIndex[nIndex], word)
+		dict.neuralCount[nIndex] = append(dict.neuralCount[nIndex], counts[nIndex])
+		dict.neuralIndexSize[nIndex]++
 	}
 }
 
@@ -263,13 +267,10 @@ func (r ByScore) Less(i, j int) bool { return math.Abs(r[i].Score-1.0) < math.Ab
 // ByLength sorts results by distance from length of original word
 type ByLength []SpwnnResult
 
-//
 func (r ByLength) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 
-//
 func (r ByLength) Less(i, j int) bool { return r[i].LenDiff < r[j].LenDiff }
 
-//
 func (r ByLength) Len() int { return len(r) }
 
 func intAbs(n int) int {
@@ -293,32 +294,46 @@ func CorrectSpelling(dict *SpwnnDictionary, word string, strictLen bool) ([]Spwn
 	if word[0] != '_' {
 		word = addStartEnd(word)
 	}
-	// Iterate through all pairs of letters
+	// Count how many times each letter pair occurs in the input
+	var inputCounts [sAlphabetSize * sAlphabetSize]int
+	var inputPairs []int
 	for i := 0; i < len(word)-1; i++ {
-		// Find list of words for this letter pair
-		n1 := charToIndex(word[i])
-		n2 := charToIndex(word[i+1])
-		index := computeIndex(n1, n2)
+		index := getNeuronIndex(word[i], word[i+1])
+		if inputCounts[index] == 0 {
+			inputPairs = append(inputPairs, index)
+		}
+		inputCounts[index]++
+	}
+
+	// For each distinct letter pair, credit every word that has it,
+	// but only as many times as that word actually contains the pair.
+	// Scores are accumulated as whole pair matches (exact in float64)
+	// and divided by the input's pair count below, so equal matches
+	// always produce exactly equal scores.
+	for _, index := range inputPairs {
 		wordList := dict.neuralIndex[index]
-		// For each word that has that letter pair,
-		// compute contribution of that letter pair.
-		var contribution float64
-		for _, aWord := range wordList {
-			// A human only has access to the word they see,
-			// so word pair contributions are based on that.
-			// Also in testing it results in far fewer ties.
-			contribution = 1.0 / float64(len(word)-1)
+		wordCounts := dict.neuralCount[index]
+		for j, aWord := range wordList {
+			matched := inputCounts[index]
+			if wordCounts[j] < matched {
+				matched = wordCounts[j]
+			}
 			lenDiff := intAbs(len(aWord) - len(word))
-			increaseWordScore(dict, aWord, contribution, lenDiff)
+			increaseWordScore(dict, aWord, float64(matched), lenDiff)
 		}
 	}
+
+	// A human only has access to the word they see,
+	// so word pair contributions are based on that.
+	// Also in testing it results in far fewer ties.
+	inputPairCount := float64(len(word) - 1)
 
 	// Find best score received by any word; also count number of words touched
 	var bestScore float64
 	var wordsTouched int
 	for i := 0; i < dict.wordCount; i++ {
 		if dict.wordScore[i] != 0.0 {
-			dict.wordScore[i] = MakeOneExactly(dict.wordScore[i])
+			dict.wordScore[i] = MakeOneExactly(dict.wordScore[i] / inputPairCount)
 			wordsTouched++
 		}
 		// Best score is the score closest to 1.0
