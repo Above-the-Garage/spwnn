@@ -138,7 +138,7 @@ func addWordToNetwork(dict *SpwnnDictionary, word string) {
 }
 
 // ReadDictionary reads a word list file into a SpwnnDictionary
-func ReadDictionary(filename string, noisy bool) *SpwnnDictionary {
+func ReadDictionary(filename string) *SpwnnDictionary {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -147,7 +147,6 @@ func ReadDictionary(filename string, noisy bool) *SpwnnDictionary {
 
 	var dict SpwnnDictionary
 
-	counter := 0
 	clearNetwork(&dict)
 
 	scanner := bufio.NewScanner(file)
@@ -157,16 +156,8 @@ func ReadDictionary(filename string, noisy bool) *SpwnnDictionary {
 		word = RemoveSpaces(word)
 		word = addStartEnd(word)
 		addWordToNetwork(&dict, word)
-		counter++
-		if noisy && counter > 1000 {
-			fmt.Print(".")
-			counter = 0
-		}
 	}
 	sort.Strings(dict.words[:])
-	if noisy {
-		fmt.Printf("\n%d words in dictionary\n", dict.wordCount)
-	}
 	return &dict
 }
 
