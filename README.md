@@ -161,6 +161,8 @@ This suggests that while the system isn't perfect, it is very good, which furthe
  
  My first version was in Lisp on a PDP-10 which had limited memory so I could only load in the words that started with "a".  I'm not sure what dictionary I used back then.  It seemed to work but the test cases were very limited.
 
+ **Origins:** the original 1980-81 Lisp code, papers and a September 1981 session log were recovered from my old PDP-10 backup tapes and are now at [spwnn-origins-1980](https://github.com/DrStephenCW/spwnn-origins-1980). (It turns out the test set was the 117 words from AARON to ABANDONMENT.)
+
  Around 2000 I realized my home computer was probably enough to run the algorithm, and I made a version in C.
 
  Around 2016 I made a version in Go, which mostly worked, even with the key bug I mention below.
